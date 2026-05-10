@@ -275,18 +275,26 @@ export default function GamePage({ params }: { params: Promise<{ code: string }>
 
       // Wait for questions if not host
       if (questionsData.length === 0) {
-        // Poll for questions more frequently
+        let isPollingQuestions = false
         const pollInterval = setInterval(async () => {
-          const polledQuestions = await getQuestions(gameData.id)
-          if (polledQuestions.length > 0) {
-            clearInterval(pollInterval)
-            setQuestions(polledQuestions)
-            setPhase('question')
-            setIsTimerActive(true)
-            const now = Date.now()
-            setQuestionStartTime(now)
+          if (isPollingQuestions) return
+          isPollingQuestions = true
+          try {
+            const polledQuestions = await getQuestions(gameData.id)
+            if (polledQuestions.length > 0) {
+              clearInterval(pollInterval)
+              setQuestions(polledQuestions)
+              setPhase('question')
+              setIsTimerActive(true)
+              const now = Date.now()
+              setQuestionStartTime(now)
+            }
+          } catch (err) {
+            console.error("Error polling questions:", err)
+          } finally {
+            isPollingQuestions = false
           }
-        }, 500)
+        }, 1500)
 
         // Cleanup on unmount
         const cleanup = () => clearInterval(pollInterval)
@@ -294,7 +302,7 @@ export default function GamePage({ params }: { params: Promise<{ code: string }>
         // Also set a timeout to prevent infinite polling
         const timeoutId = setTimeout(() => {
           clearInterval(pollInterval)
-        }, 30000)
+        }, 120000) // 2 minutes timeout to allow LLM to generate questions
 
         return () => {
           cleanup()
@@ -409,25 +417,29 @@ export default function GamePage({ params }: { params: Promise<{ code: string }>
     let disconnectRetries = 0
     const MAX_DISCONNECT_RETRIES = 3
     
+    let isPollingPlayers = false
     const pollInterval = setInterval(async () => {
+      if (isPollingPlayers) return
       if (sessionStorage.getItem('guglioquiz_redirecting') === 'true') {
         disconnectRetries = 0
         return
       }
       
-      const updatedGame = await getGameByCode(code)
-      if (updatedGame) {
-        setGame(updatedGame)
-        
-        if (updatedGame.status === 'lobby') {
-          sessionStorage.setItem('guglioquiz_redirecting', 'true')
-          clearInterval(pollInterval)
-          window.location.href = `/lobby/${updatedGame.code}`
-          return
+      isPollingPlayers = true
+      try {
+        const updatedGame = await getGameByCode(code)
+        if (updatedGame) {
+          setGame(updatedGame)
+          
+          if (updatedGame.status === 'lobby') {
+            sessionStorage.setItem('guglioquiz_redirecting', 'true')
+            clearInterval(pollInterval)
+            window.location.href = `/lobby/${updatedGame.code}`
+            return
+          }
         }
-      }
-      
-      const updatedPlayers = await getPlayers(gameIdForSub)
+        
+        const updatedPlayers = await getPlayers(gameIdForSub)
       if (updatedPlayers && updatedPlayers.length > 0) {
         setPlayers(updatedPlayers)
         
@@ -454,6 +466,11 @@ export default function GamePage({ params }: { params: Promise<{ code: string }>
           disconnectRetries = 0
         }
       }
+      } catch (err) {
+        console.error("Error polling players:", err)
+      } finally {
+        isPollingPlayers = false
+      }
     }, 1500)
 
     return () => {
@@ -477,10 +494,23 @@ export default function GamePage({ params }: { params: Promise<{ code: string }>
   useEffect(() => {
     if (phase !== 'question' || !currentQuestion) return
 
-    if (answers.length === players.length) {
+    if (answers.length >= players.length && players.length > 0) {
       handleReveal()
     }
   }, [answers.length, players.length, phase, currentQuestion])
+
+  // Host-side fallback: Force reveal if time is up and some players disconnected/didn't answer
+  useEffect(() => {
+    if (phase !== 'question' || !isHost || !game || game.game_profile === 'untimed') return
+
+    // Set a timeout for the duration of the timer + a grace period (e.g. 15s + 3s = 18s)
+    const fallbackTimer = setTimeout(() => {
+      // If we are still in the question phase, force the reveal
+      handleReveal()
+    }, SCORING.TIME_LIMIT_MS + 4000)
+
+    return () => clearTimeout(fallbackTimer)
+  }, [phase, isHost, game, currentQuestionIndex, handleReveal])
 
   const handleAnswerSelect = useCallback(
     async (answer: string) => {
@@ -1097,6 +1127,20 @@ const handleNextFromLeaderboard = async () => {
             >
               <HandHelping className="h-5 w-5" />
               Astieniti ({game.max_abstentions - (currentPlayer?.abstentions_used || 0)} rimaste)
+            </Button>
+          </div>
+        )}
+
+        {/* Force Reveal Button (Host only, untimed mode, question phase) */}
+        {isHost && game.game_profile === 'untimed' && phase === 'question' && (
+          <div className="mt-8 flex justify-center">
+            <Button
+              size="lg"
+              onClick={() => handleReveal()}
+              variant="outline"
+              className="w-full max-w-md border-red-500 text-red-500 hover:bg-red-500 hover:text-white font-bold h-12"
+            >
+              Forza Rivelazione (se qualcuno è bloccato)
             </Button>
           </div>
         )}
