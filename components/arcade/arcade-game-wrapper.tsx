@@ -308,4 +308,4 @@ export function ArcadeGameWrapper({
   )
 }
 
-export { ARCADE_SCORES }
+export { MAX_ARCADE_POINTS as ARCADE_SCORES }

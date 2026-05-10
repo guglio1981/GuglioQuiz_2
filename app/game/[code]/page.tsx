@@ -490,28 +490,6 @@ export default function GamePage({ params }: { params: Promise<{ code: string }>
     return () => unsubscribe(channel)
   }, [currentQuestion])
 
-  // Check if all players answered
-  useEffect(() => {
-    if (phase !== 'question' || !currentQuestion) return
-
-    if (answers.length >= players.length && players.length > 0) {
-      handleReveal()
-    }
-  }, [answers.length, players.length, phase, currentQuestion])
-
-  // Host-side fallback: Force reveal if time is up and some players disconnected/didn't answer
-  useEffect(() => {
-    if (phase !== 'question' || !isHost || !game || game.game_profile === 'untimed') return
-
-    // Set a timeout for the duration of the timer + a grace period (e.g. 15s + 3s = 18s)
-    const fallbackTimer = setTimeout(() => {
-      // If we are still in the question phase, force the reveal
-      handleReveal()
-    }, SCORING.TIME_LIMIT_MS + 4000)
-
-    return () => clearTimeout(fallbackTimer)
-  }, [phase, isHost, game, currentQuestionIndex, handleReveal])
-
   const handleAnswerSelect = useCallback(
     async (answer: string) => {
       if (hasAnswered || !currentQuestion || !currentPlayerId) return
@@ -708,6 +686,27 @@ export default function GamePage({ params }: { params: Promise<{ code: string }>
   // Minimal deps — actual values are read from latestRef
   }, [goToNextQuestion])
 
+  // Check if all players answered
+  useEffect(() => {
+    if (phase !== 'question' || !currentQuestion) return
+
+    if (answers.length >= players.length && players.length > 0) {
+      handleReveal()
+    }
+  }, [answers.length, players.length, phase, currentQuestion, handleReveal])
+
+  // Host-side fallback: Force reveal if time is up and some players disconnected/didn't answer
+  useEffect(() => {
+    if (phase !== 'question' || !isHost || !game || game.game_profile === 'untimed') return
+
+    // Set a timeout for the duration of the timer + a grace period (e.g. 15s + 3s = 18s)
+    const fallbackTimer = setTimeout(() => {
+      // If we are still in the question phase, force the reveal
+      handleReveal()
+    }, SCORING.TIME_LIMIT_MS + 4000)
+
+    return () => clearTimeout(fallbackTimer)
+  }, [phase, isHost, game, currentQuestionIndex, handleReveal])
 
 const handleNextFromLeaderboard = async () => {
     if (!game) return
@@ -785,7 +784,7 @@ const handleNextFromLeaderboard = async () => {
     async function fetchAndCheckResults() {
       if (!isMounted || allCompleted) return
       
-      const results = await getArcadeResults(game.id, arcadeRound)
+      const results = await getArcadeResults(game!.id, arcadeRound)
       if (!isMounted) return
       
       setArcadeResults(results)
@@ -795,14 +794,14 @@ const handleNextFromLeaderboard = async () => {
         allCompleted = true
         if (isHost) {
           const isLowerBetter = ['reaction_time', 'memory_cards', 'speed_typing', 'sequenza_numerica', 'puzzle_slider'].includes(currentArcadeGame || '')
-          await processArcadeResults(game.id, arcadeRound, currentArcadeGame || '', isLowerBetter)
+          await processArcadeResults(game!.id, arcadeRound, currentArcadeGame || '', isLowerBetter)
           // Host refreshes players immediately after processing
-          const updatedPlayers = await getPlayers(game.id)
+          const updatedPlayers = await getPlayers(game!.id)
           if (isMounted) setPlayers(updatedPlayers)
         } else {
           // Clients wait a bit for host to process, then refresh
           await new Promise(resolve => setTimeout(resolve, 1500))
-          const updatedPlayers = await getPlayers(game.id)
+          const updatedPlayers = await getPlayers(game!.id)
           if (isMounted) setPlayers(updatedPlayers)
         }
         if (isMounted) setPhase('arcade_results')
@@ -816,7 +815,7 @@ const handleNextFromLeaderboard = async () => {
     const pollInterval = setInterval(fetchAndCheckResults, 2000)
 
     // Also subscribe to realtime
-    const channel = subscribeToArcadeResults(game.id, arcadeRound, fetchAndCheckResults)
+    const channel = subscribeToArcadeResults(game!.id, arcadeRound, fetchAndCheckResults)
 
     return () => {
       isMounted = false
@@ -1149,7 +1148,7 @@ const handleNextFromLeaderboard = async () => {
         {isHost && game.game_profile === 'untimed' && phase === 'reveal' && (
           <div className="mt-8 flex justify-center">
             <Button
-              size="xl"
+              size="lg"
               onClick={async () => {
                 const questionNum = currentQuestionIndex + 1
                 const isLastQuestion = questionNum >= questions.length || questionNum >= game.question_count
