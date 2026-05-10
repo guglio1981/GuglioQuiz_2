@@ -704,7 +704,7 @@ function SettingsPageContent() {
         >
           {isLoading 
             ? (isMancheMode ? 'Aggiornamento...' : 'Creazione in corso...') 
-            : (isMancheMode ? 'Avvia Nuova Manche' : 'Crea Partita')
+            : (isMancheMode ? 'Avvia Nuova Manche' : 'Crea Manche')
           }
         </Button>
       </div>

@@ -570,10 +570,10 @@ function HomePageContent() {
                 size="lg"
                 className="w-full h-14 text-lg font-bold bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                Crea Manche
+                Crea Partita
               </Button>
               <p className="text-center text-sm text-muted-foreground mt-3">
-                Sei l&apos;host? Crea una nuova manche e invita i tuoi amici
+                Sei l&apos;host? Crea una nuova partita e invita i tuoi amici
               </p>
             </CardContent>
           </Card>
