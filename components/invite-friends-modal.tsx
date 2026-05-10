@@ -189,8 +189,8 @@ export function InviteFriendsModal({ gameCode }: InviteFriendsModalProps) {
                       key={friend.id}
                       onClick={() => toggleFriend(friend.id)}
                       className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${isSelected
-                          ? 'bg-primary/10 border-2 border-primary'
-                          : 'bg-muted/50 border-2 border-transparent hover:bg-muted'
+                        ? 'bg-primary/10 border-2 border-primary'
+                        : 'bg-muted/50 border-2 border-transparent hover:bg-muted'
                         }`}
                     >
                       <div className="flex items-center gap-3">
