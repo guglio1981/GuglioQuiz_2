@@ -59,7 +59,7 @@ export async function POST(request: Request) {
         avatar: avatar || null,
         avatar_url: avatarUrl || null
       })
-      .select('id, username, avatar, avatar_url')
+      .select('id, username, avatar, avatar_url, email')
       .single()
 
     if (error) {

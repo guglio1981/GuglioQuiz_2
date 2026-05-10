@@ -23,9 +23,9 @@ export const metadata: Metadata = {
     type: 'website',
     images: [
       {
-        url: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Gemini_Generated_Image_porxlkporxlkporx-dM0TSsv3LVTXA5enI6kP2OyldvWPdZ.png',
-        width: 1024,
-        height: 1024,
+        url: '/logo-gq.png',
+        width: 1200,
+        height: 630,
         alt: 'GuglioQuiz Logo',
       },
     ],
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'GuglioQuiz - Sfida i tuoi amici!',
     description: 'Il quiz multiplayer dove la conoscenza incontra la velocita. Sfida i tuoi amici!',
-    images: ['https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Gemini_Generated_Image_porxlkporxlkporx-dM0TSsv3LVTXA5enI6kP2OyldvWPdZ.png'],
+    images: ['/logo-gq.png'],
   },
 }
 
