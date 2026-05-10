@@ -503,25 +503,35 @@ export async function POST(request: Request) {
     // Generate AI questions for topics not covered by trivia DB
     if (otherTopics.length > 0 || allQuestions.length < count) {
       const topicsToGenerate = otherTopics.length > 0 ? otherTopics : topics
-      const remaining = count - allQuestions.length
-      if (remaining > 0) {
+      let remaining = count - allQuestions.length
+      let attempts = 0
+      
+      while (remaining > 0 && attempts < 3) {
         try {
-          const fillQuestions = await generateAIQuestions(topicsToGenerate, remaining, difficulty, usedHashes, seed + 1)
+          const fillQuestions = await generateAIQuestions(topicsToGenerate, remaining, difficulty, usedHashes, seed + 1 + attempts)
           allQuestions.push(...fillQuestions)
         } catch (e) {
-          console.error('Fill question generation failed:', e)
+          console.error(`Fill question generation failed (attempt ${attempts + 1}):`, e)
         }
+        remaining = count - allQuestions.length
+        attempts++
       }
     }
     
-    // If we still don't have enough questions, generate more with AI
+    // If we still don't have enough questions, generate more with AI (fallback)
     if (allQuestions.length < count) {
-      const remaining = count - allQuestions.length
-      try {
-        const extraQuestions = await generateAIQuestions(topics, remaining, difficulty, usedHashes, seed + 2)
-        allQuestions.push(...extraQuestions)
-      } catch (e) {
-        console.error('Extra question generation failed:', e)
+      let remaining = count - allQuestions.length
+      let attempts = 0
+      
+      while (remaining > 0 && attempts < 3) {
+        try {
+          const extraQuestions = await generateAIQuestions(topics, remaining, difficulty, usedHashes, seed + 10 + attempts)
+          allQuestions.push(...extraQuestions)
+        } catch (e) {
+          console.error(`Extra question generation failed (attempt ${attempts + 1}):`, e)
+        }
+        remaining = count - allQuestions.length
+        attempts++
       }
     }
     

@@ -428,29 +428,31 @@ export default function GamePage({ params }: { params: Promise<{ code: string }>
       }
       
       const updatedPlayers = await getPlayers(gameIdForSub)
-      setPlayers(updatedPlayers)
-      
-      const latestPlayerId = latestRef.current.currentPlayerId
-      const stillExists = updatedPlayers.some(p => p.id === latestPlayerId)
-      if (!stillExists && latestPlayerId) {
-        if (sessionStorage.getItem('guglioquiz_redirecting') === 'true') {
+      if (updatedPlayers && updatedPlayers.length > 0) {
+        setPlayers(updatedPlayers)
+        
+        const latestPlayerId = latestRef.current.currentPlayerId
+        const stillExists = updatedPlayers.some(p => p.id === latestPlayerId)
+        if (!stillExists && latestPlayerId) {
+          if (sessionStorage.getItem('guglioquiz_redirecting') === 'true') {
+            disconnectRetries = 0
+            return
+          }
+          
+          disconnectRetries++
+          if (disconnectRetries < MAX_DISCONNECT_RETRIES) {
+            return
+          }
+          
+          clearInterval(pollInterval)
+          sessionStorage.clear()
+          toast.error('Sei stato rimosso dalla partita')
+          setTimeout(() => {
+            window.location.href = '/'
+          }, 1500)
+        } else {
           disconnectRetries = 0
-          return
         }
-        
-        disconnectRetries++
-        if (disconnectRetries < MAX_DISCONNECT_RETRIES) {
-          return
-        }
-        
-        clearInterval(pollInterval)
-        sessionStorage.clear()
-        toast.error('Sei stato rimosso dalla partita')
-        setTimeout(() => {
-          window.location.href = '/'
-        }, 1500)
-      } else {
-        disconnectRetries = 0
       }
     }, 1500)
 
@@ -1106,7 +1108,7 @@ const handleNextFromLeaderboard = async () => {
               size="xl"
               onClick={async () => {
                 const questionNum = currentQuestionIndex + 1
-                const isLastQuestion = questionNum === game.question_count
+                const isLastQuestion = questionNum >= questions.length || questionNum >= game.question_count
                 const showLeaderboard = questionNum % 5 === 0 || isLastQuestion
                 
                 if (isLastQuestion) {
