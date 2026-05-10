@@ -8,7 +8,17 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
 import Link from 'next/link'
-import { ArrowLeft, Check, Users, Edit2, Loader2, Upload } from 'lucide-react'
+import { ArrowLeft, Check, Users, Edit2, Loader2, Upload, Trash2 } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { AVATAR_COLORS, AVATAR_ICONS, AVATARS, type AvatarId } from '@/lib/types'
 
 const supabase = createClient(
@@ -22,6 +32,7 @@ interface AppUser {
   avatar: AvatarId | null
   avatar_url?: string | null
   email?: string | null
+  session_token?: string
 }
 
 export default function FriendsPage() {
@@ -35,6 +46,8 @@ export default function FriendsPage() {
   const [userEmail, setUserEmail] = useState('')
   const [isEditingEmail, setIsEditingEmail] = useState(false)
   const [isSavingEmail, setIsSavingEmail] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [isDeletingProfile, setIsDeletingProfile] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
@@ -182,6 +195,40 @@ export default function FriendsPage() {
       toast.error('Errore di connessione')
     } finally {
       setIsSavingAvatar(false)
+    }
+  }
+
+  const handleDeleteProfile = async () => {
+    if (!user || !user.session_token) {
+      toast.error('Sessione non valida per l\'eliminazione')
+      return
+    }
+    
+    setIsDeletingProfile(true)
+    try {
+      const res = await fetch('/api/auth/delete-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, sessionToken: user.session_token })
+      })
+      
+      const data = await res.json()
+      
+      if (!res.ok) {
+        toast.error(data.error || 'Errore durante l\'eliminazione del profilo')
+        setIsDeletingProfile(false)
+        setShowDeleteConfirm(false)
+        return
+      }
+      
+      localStorage.removeItem('guglioquiz_user')
+      localStorage.removeItem('guglioquiz_profile')
+      toast.success('Profilo eliminato con successo')
+      router.push('/')
+    } catch {
+      toast.error('Errore di connessione')
+      setIsDeletingProfile(false)
+      setShowDeleteConfirm(false)
     }
   }
 
@@ -393,6 +440,59 @@ export default function FriendsPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Danger Zone */}
+        <Card className="border-destructive/50">
+          <CardHeader>
+            <CardTitle className="text-lg text-destructive">Zona Pericolosa</CardTitle>
+            <CardDescription>Azioni irreversibili relative al tuo account</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-foreground">Elimina Profilo</p>
+                <p className="text-sm text-muted-foreground">Rimuove permanentemente il tuo account e tutti i dati associati.</p>
+              </div>
+              <Button 
+                variant="destructive" 
+                onClick={() => setShowDeleteConfirm(true)}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Elimina Profilo
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Sei assolutamente sicuro?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Questa azione è irreversibile. Il tuo profilo, il tuo avatar e tutte le informazioni associate verranno rimosse in modo permanente dal database.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeletingProfile}>Annulla</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleDeleteProfile();
+                }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                disabled={isDeletingProfile}
+              >
+                {isDeletingProfile ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Trash2 className="h-4 w-4 mr-2" />
+                )}
+                Sì, elimina il mio profilo
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         </div>
     </main>

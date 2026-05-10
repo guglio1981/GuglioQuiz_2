@@ -46,14 +46,14 @@ export function InviteFriendsModal({ gameCode }: InviteFriendsModalProps) {
 
   const loadFriends = async () => {
     setIsLoading(true)
-    
+
     // Get user from localStorage
     const storedUser = localStorage.getItem('guglioquiz_user')
     if (!storedUser) {
       setIsLoading(false)
       return
     }
-    
+
     try {
       const userData = JSON.parse(storedUser)
       setUser(userData)
@@ -80,7 +80,7 @@ export function InviteFriendsModal({ gameCode }: InviteFriendsModalProps) {
     } catch {
       // Invalid user data
     }
-    
+
     setIsLoading(false)
   }
 
@@ -188,11 +188,10 @@ export function InviteFriendsModal({ gameCode }: InviteFriendsModalProps) {
                     <button
                       key={friend.id}
                       onClick={() => toggleFriend(friend.id)}
-                      className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
-                        isSelected 
-                          ? 'bg-primary/10 border-2 border-primary' 
+                      className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${isSelected
+                          ? 'bg-primary/10 border-2 border-primary'
                           : 'bg-muted/50 border-2 border-transparent hover:bg-muted'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center gap-3">
                         {renderAvatar(friend)}
